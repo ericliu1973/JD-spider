@@ -1,0 +1,97 @@
+对于京东爬虫设计的主要原理：
+
+1.分析URL的构成 ：发现每一页跳转的URL参数变化，对其进行简化发现其中的规律，从而为scrapy Request函数构建好参数URL
+2.对页面内容通过，XPATH进行解析。这是注意凡是出现在SOURCE CODE中的我们可以直接使用XPATH进行处理，而不是出现在SOURCE CODE中的内容说明是通过JAVA SCRIPT动态生成的，需要我们通过抓包软件
+分析其引发JAVA SCRIPT运行的URL,同时发现其生成的URL的规律。（目前我们发现越来越多的网站为了防范爬虫，将URL的设计越来越复杂化，他们将时间戳引入URL，因此在构建动态的URL时候需要非常注意
+其次，动态生成的内容可能是HTML呈现，也可能是JSON数据封装，这就要求我们利用抓包软件对response数据进行分析，从而得到需要的数据。
+
+
+
+
+
+
+https://search.jd.com/Search?keyword=python&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=python&page=3&click=0
+
+
+
+
+
+start point
+response.xpath('//div[@id="J_goodsList"]/ul/li')
+
+product-id
+response.xpath('//div[@id="J_goodsList"]/ul/li/@data-sku')
+
+comment
+>>> com=response.xpath('//div[@id="J_goodsList"]/ul/li[@class="gl-item"]//div[@class="p-commit"]/strong/a/text()').extract()
+>>> com[0]
+'1.6万+'
+
+Book Name
+>>> tt=response.xpath('//div[@id="J_goodsList"]/ul/li[@class="gl-item"]//div[@class="p-name"]/a/em')
+>>> len(tt)
+30
+>>> tt[0]
+<Selector xpath='//div[@id="J_goodsList"]/ul/li[@class="gl-item"]//div[@class="p-name"]/a/em' data='<em>利用<font class="skcolor_ljg">Python</'>
+>>> tt[0].xpath('string(.)').extract()
+['利用Python进行数据分析']
+>>> tt[1].xpath('string(.)').extract()
+['Python3网络爬虫开发实战 崔庆才Scrapy数据分析处理手册 数据抓取指南']
+>>> type(tt[1].xpath('string(.)').extract())
+<class 'list'>
+>>> tt[1].xpath('string(.)').extract()[0]
+'Python3网络爬虫开发实战 崔庆才Scrapy数据分析处理手册 数据抓取指南'
+
+
+
+
+:\Users\eric>python
+Python 3.5.4 (v3.5.4:3f56838, Aug  8 2017, 02:17:05) [MSC v.1900 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> st='<div id="test3">我左青龙，<span id="tiger">右白虎，<ul>上朱雀，<li>下玄武。</li></ul>老牛在当中，</span>龙头在胸口。<div>'
+>>> from scrapy.selector import Selector
+>>> tt=Selector(text=st)
+>>> tt.xpath('//div[@id="test3"]')
+[<Selector xpath='//div[@id="test3"]' data='<div id="test3">我左青龙，<span id="tiger">右白'>]
+>>> data= tt.xpath('//div[@id="test3"]')
+>>> info=data.xpath('string(.)').extract()[0]
+>>> info
+'我左青龙，右白虎，上朱雀，下玄武。老牛在当中，龙头在胸口。'
+>>> info
+'我左青龙，右白虎，上朱雀，下玄武。老牛在当中，龙头在胸口。'
+>>> info=data.xpath('string(.)').extract()
+>>> info
+['我左青龙，右白虎，上朱雀，下玄武。老牛在当中，龙头在胸口。']
+>>> type(info)
+<class 'list'>
+>>> len(info)
+1
+
+rating url
+https://sclub.jd.com/comment/productPageComments.action?productId={}&score=0&sortType=3&page=0&pageSize=10&isShadowSku=0
+
+data process
+
+>>> data=(response.body).decode('cp936')
+>>> import json
+>>> data_json=json.loads(data)
+>>> data_json   note: the dictionary which we needed
+
+
+
+
+https://search.jd.com/s_new.php?keyword=python&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=python&page=2&s=30&scrolling=y&log_id=1522595918.29761&tpl=2_M&show_items=12279949,11576833,12180152,11848567,12273591,11993134,12004711,12186192,11572056,12028953,12215717,12292223,11889583,12333540,10599758,12293703,11896401,11598704,11936238,11943853,11872653,11571426,11352441,12227940,11518115,11896415,11821364,12280691,12273412,11487324
+
+http://search.jd.com/Search?keyword=linux&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=linux&page=1&s=1&click=0
+http://search.jd.com/Search?keyword=linux&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=linux&page=3&s=55&click=0
+http://search.jd.com/Search?keyword=linux&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=linux&page=5&s=107&click=0
+http://search.jd.com/Search?keyword=linux&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=linux&page=7&s=163&click=0
+
+
+http://search.jd.com/Search?keyword=python&enc=utf-8&qrst=1&rt=1&stop=1&spm=2.1.0&vt=2&page=1&s=1&click=0
+http://search.jd.com/Search?keyword=python&enc=utf-8&qrst=1&rt=1&stop=1&spm=2.1.0&vt=2&page=3&s=60&click=0
+http://search.jd.com/Search?keyword=python&enc=utf-8&qrst=1&rt=1&stop=1&spm=2.1.0&vt=2&page=5&s=117&click=0
+http://search.jd.com/Search?keyword=python&enc=utf-8&qrst=1&rt=1&stop=1&spm=2.1.0&vt=2&page=9&s=222&click=0
+
+
+http://search.jd.com/Search?keyword=python&enc=utf-8&pvid=07319d40457040b1b4e6d19828e7b08e
